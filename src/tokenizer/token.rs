@@ -1,4 +1,4 @@
-// abap-tokenizer\src\tokenizer\token.rs
+// abap-tokenizer/src/tokenizer/token.rs
 use super::token_type::TokenType;
 
 #[derive(Debug, Clone)]

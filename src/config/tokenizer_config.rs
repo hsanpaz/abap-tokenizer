@@ -1,4 +1,4 @@
-// abap-tokenizer\src\config\tokenizer_config.rs
+// abap-tokenizer/src/config/tokenizer_config.rs
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;

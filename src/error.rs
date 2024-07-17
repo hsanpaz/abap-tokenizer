@@ -1,4 +1,4 @@
-// src/error.rs
+// abap-tokenizer/src/error.rs
 use thiserror::Error;
 
 #[derive(Error, Debug)]

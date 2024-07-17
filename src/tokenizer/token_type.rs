@@ -1,4 +1,4 @@
-// abap-tokenizer\src\tokenizer\token_type.rs
+// abap-tokenizer/src/tokenizer/token_type.rs
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

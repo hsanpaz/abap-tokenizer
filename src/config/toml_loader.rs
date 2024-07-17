@@ -1,4 +1,4 @@
-// abap-tokenizer\src\config\toml_loader.rs
+// abap-tokenizer/src/config/toml_loader.rs
 use crate::error::ConfigError;
 use crate::config::tokenizer_config::{RawTokenizerConfig, TokenizerConfig};
 use std::fs;

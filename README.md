@@ -31,34 +31,21 @@ El sistema se compone de los siguientes elementos principales:
 
 ## Estructura de Archivos 
 ```
-abap-tokenizer/
+abap_tokenizer/
 ├── Cargo.toml
-├── Cargo.lock
-├── README.md
 ├── src/
 │   ├── main.rs
 │   ├── lib.rs
+│   ├── config/
+│   │   ├── mod.rs
+│   │   ├── tokenizer_config.rs
+│   │   └── toml_loader.rs
 │   ├── tokenizer/
 │   │   ├── mod.rs
 │   │   ├── flexible_tokenizer.rs
 │   │   ├── token.rs
 │   │   └── token_type.rs
-│   ├── config/
-│   │   ├── mod.rs
-│   │   ├── tokenizer_config.rs
-│   │   └── toml_loader.rs
-│   └── utils/
-│       ├── mod.rs
-│       └── logger.rs
-├── tests/
-│   ├── integration_tests.rs
-│   └── test_data/
-│       ├── valid_abap_code.abap
-│       └── invalid_abap_code.abap
-├── benches/
-│   └── tokenizer_benchmark.rs
-├── examples/
-│   └── simple_tokenization.rs
+│   └── error.rs
 └── config/
     └── default_config.toml
 ```

@@ -1,4 +1,4 @@
-# Configuración del Tokenizador ABAP Flexible
+# abap-tokenizer/config/default_config.toml
 
 [metadata]
 language_version = "ABAP 7.5"
@@ -14,9 +14,15 @@ Punctuation = { priority = 5, color = "gray" }
 Comment = { priority = 6, color = "green" }
 
 [patterns]
+
+Comment = [
+    { regex = "\\*.*$", subcategory = "LineComment" },
+    { regex = "\".*$", subcategory = "LineComment" }
+]
+
 Keyword = [
     { regex = "\\b(IF|ELSE|ENDIF|CASE|ENDCASE|DO|ENDDO|WHILE|ENDWHILE|LOOP|ENDLOOP)\\b", subcategory = "ControlFlow" },
-    { regex = "\\b(DATA|TYPES|CONSTANTS|FIELD-SYMBOLS|REPORT)\\b", subcategory = "Declaration" },
+    { regex = "\\b(DATA|TYPES|CONSTANTS|FIELD-SYMBOLS|REPORT|VALUE)\\b", subcategory = "Declaration" },
     { regex = "\\b(SELECT|FROM|WHERE|ORDER BY|GROUP BY|HAVING)\\b", subcategory = "Database" },
     { regex = "\\b(FORM|ENDFORM|PERFORM|METHOD|ENDMETHOD|FUNCTION|ENDFUNCTION)\\b", subcategory = "Subroutine" },
     { regex = "\\b(CLASS|ENDCLASS|INTERFACE|ENDINTERFACE)\\b", subcategory = "OOP" }
@@ -39,11 +45,6 @@ Operator = [
 
 Punctuation = [
     { regex = "[.,():;\\[\\]{}]" }
-]
-
-Comment = [
-    { regex = "\\*.*$", subcategory = "LineComment" },
-    { regex = "\".*$", subcategory = "LineComment" }
 ]
 
 [context_rules]

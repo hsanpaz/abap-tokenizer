@@ -1,4 +1,4 @@
-// abap-tokenizer\src\config\mod.rs
+// abap-tokenizer/src/config/mod.rs
 mod tokenizer_config;
 mod toml_loader;
 

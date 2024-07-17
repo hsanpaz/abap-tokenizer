@@ -1,3 +1,4 @@
+// abap-tokenizer/src/main.rs
 use abap_tokenizer::config::load_toml_config;
 use abap_tokenizer::tokenizer::flexible_tokenizer::FlexibleTokenizer;
 use std::path::Path;
@@ -13,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     DATA: lv_number TYPE i VALUE 10,
           lv_text   TYPE string VALUE 'Hello, ABAP!'.
-    * Esto es un comentario de linea.
+*   Esto es un comentario de linea.
     WRITE: 'Number:', lv_number.
     WRITE: / 'Text:', lv_text.
 
