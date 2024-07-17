@@ -1,0 +1,59 @@
+# Configuración del Tokenizador ABAP Flexible
+
+[metadata]
+language_version = "ABAP 7.5"
+case_sensitive = false
+allow_unicode_identifiers = true
+
+[token_categories]
+Keyword = { priority = 1, color = "blue" }
+Identifier = { priority = 2, color = "black" }
+Literal = { priority = 3, color = "green" }
+Operator = { priority = 4, color = "red" }
+Punctuation = { priority = 5, color = "gray" }
+Comment = { priority = 6, color = "green" }
+
+[patterns]
+Keyword = [
+    { regex = "\\b(IF|ELSE|ENDIF|CASE|ENDCASE|DO|ENDDO|WHILE|ENDWHILE|LOOP|ENDLOOP)\\b", subcategory = "ControlFlow" },
+    { regex = "\\b(DATA|TYPES|CONSTANTS|FIELD-SYMBOLS|REPORT)\\b", subcategory = "Declaration" },
+    { regex = "\\b(SELECT|FROM|WHERE|ORDER BY|GROUP BY|HAVING)\\b", subcategory = "Database" },
+    { regex = "\\b(FORM|ENDFORM|PERFORM|METHOD|ENDMETHOD|FUNCTION|ENDFUNCTION)\\b", subcategory = "Subroutine" },
+    { regex = "\\b(CLASS|ENDCLASS|INTERFACE|ENDINTERFACE)\\b", subcategory = "OOP" }
+]
+
+Identifier = [
+    { regex = "[a-zA-Z_][a-zA-Z0-9_]*" }
+]
+
+Literal = [
+    { regex = "'[^']*'", subcategory = "String" },
+    { regex = "`[^`]*`", subcategory = "String" },
+    { regex = "\\b\\d+\\b", subcategory = "Integer" },
+    { regex = "\\b\\d+\\.\\d+\\b", subcategory = "Float" }
+]
+
+Operator = [
+    { regex = "\\+|-|\\*|/|=|<>|<=|>=|<|>|\\bAND\\b|\\bOR\\b|\\bNOT\\b" }
+]
+
+Punctuation = [
+    { regex = "[.,():;\\[\\]{}]" }
+]
+
+Comment = [
+    { regex = "\\*.*$", subcategory = "LineComment" },
+    { regex = "\".*$", subcategory = "LineComment" }
+]
+
+[context_rules]
+StringLiteral = { start = "'", end = "'", escape = "''", multiline = true }
+TemplateString = { start = "|", end = "|", escape = "||", multiline = true }
+
+[special_rules]
+FieldSymbol = { start = "<", end = ">", allow_nested = false }
+Pragma = { start = "#", regex = "#[A-Z]+", process_as = "Keyword" }
+
+[custom_actions]
+Pragma = { action = "ProcessPragma" }
+TemplateString = { action = "ProcessTemplateString" } 

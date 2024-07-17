@@ -1,0 +1,18 @@
+[package]
+name = "abap-tokenizer"
+version = "0.1.0"
+edition = "2021"
+authors = ["Hernan Sanabria <tu@email.com>"]
+description = "Lexer for ABAP Languaje"
+
+[dependencies]
+clap = { version = "4.5.9", features = ["derive"] }
+env_logger = "0.11.3"
+log = "0.4.22"
+regex = "1.10.5"
+thiserror = "1.0.62"
+toml = "0.8.14"
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+criterion = "0.5.1"
