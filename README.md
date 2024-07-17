@@ -1,33 +1,99 @@
-# Diseño del Tokenizador ABAP Flexible
+# Diseño del Tokenizador ABAP
 
 ## Introducción
 
-Este documento describe el diseño de un tokenizador flexible para el lenguaje ABAP (Advanced Business Application Programming). El tokenizador está diseñado para ser configurable, extensible y capaz de manejar las complejidades específicas del lenguaje ABAP.
+Este documento describe el diseño de un tokenizador flexible para el lenguaje ABAP (Advanced Business Application Programming). El tokenizador está implementado en Rust, aprovechando su rendimiento y seguridad, y utiliza archivos de configuración TOML para una fácil personalización. Está diseñado para ser altamente configurable, extensible y capaz de manejar las complejidades específicas del lenguaje ABAP, adaptándose a diferentes variantes y necesidades de análisis.
 
 ## Objetivos del Diseño
 
-1. Crear un tokenizador altamente configurable para ABAP.
-2. Permitir la fácil extensión y modificación de reglas de tokenización.
-3. Facilitar la integración con herramientas de análisis y desarrollo.
-4. Facilitar la adaptación a diferentes variantes de ABAP.
+1. Crear un tokenizador altamente configurable para ABAP, utilizando archivos TOML para definir reglas de tokenización.
+2. Permitir la fácil extensión y modificación de reglas de tokenización sin necesidad de cambiar el código fuente.
+3. Facilitar la integración con herramientas de análisis y desarrollo, proporcionando una API clara y resultados estructurados.
+4. Facilitar la adaptación a diferentes variantes de ABAP mediante configuraciones flexibles.
+5. Implementar un manejo robusto de errores para mejorar la fiabilidad y facilitar la depuración.
+
+Estos objetivos se reflejan en la implementación del proyecto de la siguiente manera:
+
+1. La clase `TokenizerConfig` y el uso de archivos TOML permiten una configuración detallada y flexible del tokenizador.
+2. La estructura modular del código, especialmente en los componentes de `FlexibleTokenizer` y `TokenizerConfig`, facilita la extensión y modificación de las reglas de tokenización.
+3. La API bien definida de `FlexibleTokenizer` y la estructura clara de `Token` permiten una fácil integración con otras herramientas de análisis y desarrollo.
+4. El sistema de configuración basado en TOML permite adaptar fácilmente el tokenizador a diferentes variantes de ABAP sin modificar el código fuente.
+5. Los enums `ConfigError` y `TokenizerError`, junto con el uso consistente de `Result` en las funciones clave, proporcionan un manejo de errores robusto y detallado.
+
+Las secciones siguientes de este documento detallarán la arquitectura, los componentes principales y el flujo de trabajo del tokenizador, demostrando cómo se logran estos objetivos en la implementación.
 
 ## Estructura del Sistema
 
-## Estructura del Sistema
+El Tokenizador ABAP Flexible está diseñado con una arquitectura modular que permite una fácil extensión y mantenimiento. Los componentes principales del sistema son:
 
-El sistema se compone de los siguientes elementos principales:
+### Configuración (módulo `config`)
 
-1. **TokenType** (`token_type.rs`): Una estructura flexible que representa diferentes tipos de tokens, con soporte para categorías y subcategorías opcionales.
+#### TokenizerConfig (`tokenizer_config.rs`)
+- **Función**: Representa la configuración compilada del tokenizador.
+- **Componentes**:
+  - `token_categories`: Define las categorías de tokens y sus propiedades.
+  - `patterns`: Contiene los patrones compilados para la identificación de tokens.
+  - `context_rules`: Define reglas para tokens que requieren contexto adicional.
+  - `custom_actions`: Especifica acciones personalizadas para ciertos tipos de tokens.
+- **Interacciones**: Utilizado por `FlexibleTokenizer` para guiar el proceso de tokenización.
 
-2. **Token** (`token.rs`): Representa un token individual en el código ABAP, incluyendo su tipo, valor, y posición en el código fuente.
+#### TOMLLoader (`toml_loader.rs`)
+- **Función**: Carga y parsea el archivo de configuración TOML.
+- **Interacciones**: Convierte el archivo TOML en una instancia de `TokenizerConfig`.
 
-3. **FlexibleTokenizer** (`flexible_tokenizer.rs`): La clase principal que coordina el proceso de tokenización, utilizando la configuración TOML para determinar cómo tokenizar el input.
+### Tokenizador (módulo `tokenizer`)
 
-4. **TokenizerConfig** (`config/tokenizer_config.rs`): Encargada de representar la configuración cargada desde el archivo TOML.
+#### FlexibleTokenizer (`flexible_tokenizer.rs`)
+- **Función**: Implementación principal del tokenizador.
+- **Componentes**:
+  - `input`: El código ABAP a tokenizar.
+  - `config`: La configuración compilada del tokenizador.
+  - `position`, `line`, `column`: Mantienen el seguimiento de la posición actual en el input.
+- **Métodos principales**:
+  - `next_token()`: Genera el siguiente token del input.
+  - `match_pattern()`: Intenta hacer coincidir el input con los patrones definidos.
+- **Interacciones**: Utiliza `TokenizerConfig` para guiar el proceso de tokenización y genera instancias de `Token`.
 
-5. **Módulo de configuración** (`config/mod.rs` y `config/toml_loader.rs`): Maneja la carga y parsing del archivo de configuración TOML.
+#### Token (`token.rs`)
+- **Función**: Representa un token individual en el código ABAP.
+- **Componentes**:
+  - `token_type`: El tipo del token.
+  - `value`: El valor del token.
+  - `line`, `column`: La posición del token en el código fuente.
 
-6. **Módulo principal del tokenizador** (`mod.rs`): Actúa como punto de entrada para el módulo del tokenizador, re-exportando las estructuras y funciones públicas.
+#### TokenType (`token_type.rs`)
+- **Función**: Define el tipo de un token.
+- **Componentes**:
+  - `category`: La categoría principal del token.
+  - `subcategory`: Una subcategoría opcional para una clasificación más detallada.
+
+### Manejo de Errores (`error.rs`)
+- **Función**: Define tipos de error personalizados para el sistema.
+- **Tipos de error**:
+  - `ConfigError`: Errores relacionados con la configuración.
+  - `TokenizerError`: Errores que ocurren durante el proceso de tokenización.
+
+### Entrada/Salida del Sistema
+
+#### Entrada
+- Archivo de configuración TOML: Define las reglas y patrones de tokenización.
+- Código fuente ABAP: El código a ser tokenizado.
+
+#### Salida
+- Lista de tokens: Cada token contiene información sobre su tipo, valor y posición en el código fuente.
+
+## Flujo de Trabajo del Sistema
+
+1. Se carga y parsea el archivo de configuración TOML utilizando `TOMLLoader`.
+2. Se crea una instancia de `TokenizerConfig` con la configuración parseada.
+3. Se inicializa `FlexibleTokenizer` con el código ABAP de entrada y la configuración.
+4. `FlexibleTokenizer` procesa el input carácter por carácter:
+   - Identifica tokens basándose en los patrones definidos en `TokenizerConfig`.
+   - Crea instancias de `Token` para cada token identificado.
+   - Maneja casos especiales y reglas de contexto según sea necesario.
+5. Se genera una lista de tokens como salida final.
+
+Esta estructura modular permite una fácil extensión del sistema para soportar nuevas características de ABAP o diferentes dialectos del lenguaje, simplemente actualizando el archivo de configuración TOML y, si es necesario, extendiendo la lógica de `FlexibleTokenizer`.
 
 ## Estructura de Archivos 
 ```
@@ -50,79 +116,61 @@ abap_tokenizer/
     └── default_config.toml
 ```
 
-### Explicación de la Estructura
+### Explicación de la Estructura de archivos
 
-1. **Raíz del Proyecto**
-   - `Cargo.toml`: Manifiesto del proyecto Rust.
-   - `Cargo.lock`: Archivo de bloqueo de dependencias.
-   - `README.md`: Documentación principal del proyecto.
+El proyecto del Tokenizador ABAP Flexible está organizado de la siguiente manera:
 
-2. **src/**
-   - `main.rs`: Punto de entrada para la aplicación de línea de comandos.
-   - `lib.rs`: Punto de entrada para la biblioteca.
+#### Raíz del Proyecto
+- `Cargo.toml`: Manifiesto del proyecto Rust. Define las dependencias, metadatos y configuración de compilación del proyecto.
+- `README.md`: Documentación principal del proyecto, proporcionando una visión general, instrucciones de uso y otra información relevante.
 
-3. **src/tokenizer/**
-   - `mod.rs`: Define el módulo del tokenizador.
-   - `flexible_tokenizer.rs`: Implementación principal del tokenizador flexible.
-   - `token.rs`: Definición de la estructura Token.
-   - `token_type.rs`: Definición de la estructura TokenType.
+#### Directorio `src/`
+Contiene el código fuente principal del proyecto:
 
-4. **src/config/**
-   - `mod.rs`: Define el módulo de configuración.
-   - `tokenizer_config.rs`: Estructura y lógica de la configuración del tokenizador.
-   - `toml_loader.rs`: Funcionalidad para cargar y parsear archivos TOML.
+- `main.rs`: Punto de entrada para la aplicación de línea de comandos. Maneja los argumentos de la CLI y la inicialización del logger.
+- `lib.rs`: Define la estructura del módulo principal y re-exporta componentes públicos. Sirve como punto de entrada cuando el proyecto se usa como biblioteca.
+- `error.rs`: Define tipos de error personalizados utilizados en todo el proyecto.
 
-5. **src/matchers/**
-   - Contiene módulos separados para cada tipo de matcher (keyword, identifier, etc.).
-   - Cada matcher se encarga de reconocer un tipo específico de token.
+#### Subdirectorio `src/config/`
+Maneja la configuración del tokenizador:
 
-6. **src/error/**
-   - `tokenizer_error.rs`: Definiciones de errores específicos del tokenizador.
+- `mod.rs`: Define el módulo de configuración y sus exportaciones.
+- `tokenizer_config.rs`: Define las estructuras para la configuración del tokenizador y la lógica de compilación de patrones.
+- `toml_loader.rs`: Responsable de cargar y parsear el archivo de configuración TOML.
 
-7. **src/utils/**
-   - `logger.rs`: Utilidad para logging.
+#### Subdirectorio `src/tokenizer/`
+Contiene la implementación principal del tokenizador:
 
-8. **tests/**
-   - `integration_tests.rs`: Pruebas de integración.
-   - `test_data/`: Directorio con datos de prueba.
+- `mod.rs`: Define el módulo del tokenizador y sus exportaciones.
+- `flexible_tokenizer.rs`: Implementación principal del tokenizador flexible.
+- `token.rs`: Define la estructura `Token`, que representa un token individual en el código ABAP.
+- `token_type.rs`: Define la estructura `TokenType`, que representa el tipo de un token.
 
-9. **benches/**
-   - `tokenizer_benchmark.rs`: Benchmarks para medir el rendimiento del tokenizador.
+### Directorio `config/`
+Contiene archivos de configuración:
 
-10. **examples/**
-    - `simple_tokenization.rs`: Ejemplo de uso básico del tokenizador.
-
-11. **config/**
-    - `default_config.toml`: Configuración TOML por defecto para el tokenizador.
+- `default_config.toml`: Configuración TOML por defecto para el tokenizador. Define los patrones y reglas de tokenización predeterminados.
 
 
-#### Tabla de Descripción de Archivos del Tokenizador ABAP Flexible:
 
+### Tabla de Descripción de Archivos del Tokenizador ABAP Flexible:
 
-| Nombre del Archivo | Ruta | Función | Interacciones |
-|--------------------|------|---------|---------------|
-| main.rs | /src/main.rs | Punto de entrada para la aplicación de línea de comandos | Interactúa con lib.rs y flexible_tokenizer.rs |
-| lib.rs | /src/lib.rs | Punto de entrada para la biblioteca, define la estructura del módulo | Interactúa con todos los módulos en src/ |
-| mod.rs | /src/tokenizer/mod.rs | Define el módulo del tokenizador | Interactúa con flexible_tokenizer.rs, token.rs, y token_type.rs |
-| flexible_tokenizer.rs | /src/tokenizer/flexible_tokenizer.rs | Implementación principal del tokenizador flexible | Interactúa con token.rs, token_type.rs, y tokenizer_config.rs |
-| token.rs | /src/tokenizer/token.rs | Define la estructura Token | Utilizado por flexible_tokenizer.rs |
-| token_type.rs | /src/tokenizer/token_type.rs | Define la estructura TokenType | Utilizado por token.rs y flexible_tokenizer.rs |
-| mod.rs | /src/config/mod.rs | Define el módulo de configuración | Interactúa con tokenizer_config.rs y toml_loader.rs |
-| tokenizer_config.rs | /src/config/tokenizer_config.rs | Define las estructuras para la configuración del tokenizador | Interactúa con toml_loader.rs y flexible_tokenizer.rs |
-| toml_loader.rs | /src/config/toml_loader.rs | Carga y parsea el archivo de configuración TOML | Interactúa con tokenizer_config.rs |
-| mod.rs | /src/utils/mod.rs | Define el módulo de utilidades | Interactúa con logger.rs |
-| logger.rs | /src/utils/logger.rs | Implementa funcionalidades de logging | Utilizado potencialmente por todos los otros módulos |
-| integration_tests.rs | /tests/integration_tests.rs | Contiene pruebas de integración para el tokenizador | Interactúa con lib.rs y flexible_tokenizer.rs |
-| valid_abap_code.abap | /tests/test_data/valid_abap_code.abap | Archivo de prueba con código ABAP válido | Utilizado por integration_tests.rs |
-| invalid_abap_code.abap | /tests/test_data/invalid_abap_code.abap | Archivo de prueba con código ABAP inválido | Utilizado por integration_tests.rs |
-| tokenizer_benchmark.rs | /benches/tokenizer_benchmark.rs | Contiene benchmarks para medir el rendimiento del tokenizador | Interactúa con lib.rs y flexible_tokenizer.rs |
-| simple_tokenization.rs | /examples/simple_tokenization.rs | Ejemplo de uso básico del tokenizador | Interactúa con lib.rs y flexible_tokenizer.rs |
-| default_config.toml | /config/default_config.toml | Configuración TOML por defecto para el tokenizador | Utilizado por toml_loader.rs |
-| Cargo.toml | /Cargo.toml | Manifiesto del proyecto Rust, define dependencias y metadatos | Interactúa con todos los archivos del proyecto a través de la gestión de dependencias |
-| Cargo.lock | /Cargo.lock | Archivo de bloqueo de dependencias | Generado automáticamente basado en Cargo.toml |
-| README.md | /README.md | Documentación principal del proyecto | N/A |
-
-
+| Nombre del Archivo | Ruta | Función | Interacciones con otros archivos | Notas adicionales |
+|--------------------|------|---------|----------------------------------|-------------------|
+| Cargo.toml | /Cargo.toml | Manifiesto del proyecto Rust, define dependencias y metadatos | Interactúa con todos los archivos del proyecto a través de la gestión de dependencias | Define la versión de Rust y las dependencias externas |
+| main.rs | /src/main.rs | Punto de entrada para la aplicación de línea de comandos | Interactúa con lib.rs y flexible_tokenizer.rs | Maneja los argumentos de línea de comandos y la inicialización del logger |
+| lib.rs | /src/lib.rs | Define la estructura del módulo y re-exporta componentes públicos | Interactúa con todos los módulos en src/ | Punto de entrada para la biblioteca cuando se usa como dependencia |
+| error.rs | /src/error.rs | Define los tipos de error personalizados | Utilizado por otros módulos para manejar errores | Implementa los traits Error y Display |
+| mod.rs | /src/config/mod.rs | Define el módulo de configuración | Interactúa con tokenizer_config.rs y toml_loader.rs | Re-exporta componentes públicos del módulo config |
+| tokenizer_config.rs | /src/config/tokenizer_config.rs | Define las estructuras para la configuración del tokenizador | Interactúa con toml_loader.rs y flexible_tokenizer.rs | Implementa la lógica de compilación de patrones |
+| toml_loader.rs | /src/config/toml_loader.rs | Carga y parsea el archivo de configuración TOML | Interactúa con tokenizer_config.rs | Utiliza la crate `toml` para parsear el archivo |
+| mod.rs | /src/tokenizer/mod.rs | Define el módulo del tokenizador | Interactúa con flexible_tokenizer.rs, token.rs, y token_type.rs | Re-exporta componentes públicos del módulo tokenizer |
+| flexible_tokenizer.rs | /src/tokenizer/flexible_tokenizer.rs | Implementación principal del tokenizador flexible | Interactúa con token.rs, token_type.rs, y tokenizer_config.rs | Contiene la lógica principal de tokenización |
+| token.rs | /src/tokenizer/token.rs | Define la estructura Token | Utilizado por flexible_tokenizer.rs | Representa un token individual en el código ABAP |
+| token_type.rs | /src/tokenizer/token_type.rs | Define la estructura TokenType | Utilizado por token.rs y flexible_tokenizer.rs | Representa el tipo de un token |
+| default_config.toml | /config/default_config.toml | Configuración TOML por defecto para el tokenizador | Utilizado por toml_loader.rs | Define los patrones y reglas de tokenización por defecto |
+| integration_tests.rs | /tests/integration_tests.rs | Contiene pruebas de integración para el tokenizador | Interactúa con lib.rs y flexible_tokenizer.rs | Verifica el funcionamiento correcto del tokenizador en diferentes escenarios |
+| README.md | /README.md | Documentación principal del proyecto | N/A | Proporciona una visión general del proyecto, instrucciones de uso y documentación |
 
 
 ### Beneficios de esta Estructura
@@ -142,76 +190,6 @@ El archivo de configuración TOML es una parte crucial del sistema diseñado. De
 
 ```toml
 
-# Configuración del Tokenizador ABAP Flexible
-
-[metadata]
-language_version = "ABAP 7.5"
-case_sensitive = false
-allow_unicode_identifiers = true
-
-[token_categories]
-Keyword = { priority = 1, color = "blue" }
-Identifier = { priority = 2, color = "black" }
-Literal = { priority = 3, color = "green" }
-Operator = { priority = 4, color = "red" }
-Punctuation = { priority = 5, color = "gray" }
-Comment = { priority = 6, color = "green" }
-
-[patterns]
-Keyword = [
-    { regex = "\\b(IF|ELSE|ENDIF|CASE|ENDCASE|DO|ENDDO|WHILE|ENDWHILE|LOOP|ENDLOOP)\\b", subcategory = "ControlFlow" },
-    { regex = "\\b(DATA|TYPES|CONSTANTS|FIELD-SYMBOLS)\\b", subcategory = "Declaration" },
-    { regex = "\\b(SELECT|FROM|WHERE|ORDER BY|GROUP BY|HAVING)\\b", subcategory = "Database" },
-    { regex = "\\b(FORM|ENDFORM|PERFORM|METHOD|ENDMETHOD|FUNCTION|ENDFUNCTION)\\b", subcategory = "Subroutine" },
-    { regex = "\\b(CLASS|ENDCLASS|INTERFACE|ENDINTERFACE)\\b", subcategory = "OOP" }
-]
-
-Identifier = [
-    { regex = "[a-zA-Z_][a-zA-Z0-9_]*" }
-]
-
-Literal = [
-    { regex = "'[^']*'", subcategory = "String" },
-    { regex = "`[^`]*`", subcategory = "String" },
-    { regex = "\\b\\d+\\b", subcategory = "Integer" },
-    { regex = "\\b\\d+\\.\\d+\\b", subcategory = "Float" }
-]
-
-Operator = [
-    { regex = "\\+|-|\\*|/|=|<>|<=|>=|<|>|\\bAND\\b|\\bOR\\b|\\bNOT\\b" }
-]
-
-Punctuation = [
-    { regex = "[.,():;\\[\\]{}]" }
-]
-
-Comment = [
-    { regex = "\\*.*$", subcategory = "LineComment" },
-    { regex = "\".*$", subcategory = "LineComment" }
-]
-
-[context_rules]
-StringLiteral = { start = "'", end = "'", escape = "''", multiline = true }
-TemplateString = { start = "|", end = "|", escape = "||", multiline = true }
-
-[special_rules]
-FieldSymbol = { start = "<", end = ">", allow_nested = false }
-Pragma = { start = "#", regex = "#[A-Z]+", process_as = "Keyword" }
-
-[custom_actions]
-Pragma = { action = "ProcessPragma" }
-TemplateString = { action = "ProcessTemplateString" }
-
-```
-
-
-Claro, con gusto le proporcionaré un ejemplo del archivo de configuración TOML que sería compatible con nuestro tokenizador ABAP flexible optimizado. Este ejemplo ilustrará cómo definir diferentes categorías de tokens, patrones, y reglas especiales.
-
-
-
-Aquí está un ejemplo de un archivo de configuración TOML para nuestro tokenizador ABAP flexible:
-
-```toml
 # Configuración del Tokenizador ABAP Flexible
 
 [metadata]
@@ -301,7 +279,7 @@ Esta estructura permite una fácil extensión y modificación de las reglas de t
 
 ## Componentes Principales
 
-## Componentes Principales
+El tokenizador ABAP flexible está compuesto por varios componentes clave, cada uno con responsabilidades específicas en el proceso de tokenización. A continuación, se describen los componentes principales:
 
 ### TokenType
 
@@ -316,6 +294,8 @@ impl TokenType {
     pub fn from_str(s: &str) -> Self;
 }
 ```
+
+`TokenType` representa el tipo de un token, incluyendo su categoría principal y una subcategoría opcional. Proporciona métodos para crear nuevas instancias y para convertir desde una representación de cadena.
 
 ### Token
 
@@ -332,11 +312,13 @@ impl Token {
 }
 ```
 
+`Token` representa un token individual en el código ABAP. Contiene información sobre el tipo de token, su valor, y su posición (línea y columna) en el código fuente.
+
 ### FlexibleTokenizer
 
 ```rust
 pub struct FlexibleTokenizer<'a> {
-    input: Peekable<Chars<'a>>,
+    input: &'a str,
     config: TokenizerConfig,
     position: usize,
     line: usize,
@@ -345,56 +327,112 @@ pub struct FlexibleTokenizer<'a> {
 
 impl<'a> FlexibleTokenizer<'a> {
     pub fn new(input: &'a str, config: TokenizerConfig) -> Self;
-    pub fn next_token(&mut self) -> Option<Token>;
-    fn match_pattern(&mut self, category: &str, pattern: &PatternConfig) -> Option<Token>;
+    pub fn next_token(&mut self) -> Result<Option<Token>, TokenizerError>;
+    fn find_next_token(&self, input: &str) -> Result<Option<(Token, usize)>, TokenizerError>;
     fn skip_whitespace(&mut self);
     fn advance(&mut self) -> char;
 }
 ```
 
+`FlexibleTokenizer` es el componente central que realiza el proceso de tokenización. Utiliza la configuración proporcionada para analizar el input y generar tokens. El método `next_token` es el punto de entrada principal para obtener el siguiente token del input.
+
 ### TokenizerConfig
 
 ```rust
 pub struct TokenizerConfig {
+    pub metadata: Metadata,
     pub token_categories: HashMap<String, CategoryConfig>,
-    pub patterns: HashMap<String, Vec<PatternConfig>>,
+    pub patterns: HashMap<String, Vec<CompiledPatternConfig>>,
     pub context_rules: HashMap<String, ContextRule>,
     pub custom_actions: HashMap<String, CustomAction>,
 }
 
 impl TokenizerConfig {
-    pub fn load(path: &str) -> Result<Self, Box<dyn Error>>;
+    pub fn from_raw(raw_config: RawTokenizerConfig) -> Result<Self, ConfigError>;
+    pub fn merge(&mut self, other: TokenizerConfig) -> Result<(), ConfigError>;
+    pub fn get_pattern(&self, category: &str) -> Option<&Vec<CompiledPatternConfig>>;
+    pub fn add_pattern(&mut self, category: String, pattern: CompiledPatternConfig);
+    pub fn get_context_rule(&self, name: &str) -> Option<&ContextRule>;
+    pub fn add_context_rule(&mut self, name: String, rule: ContextRule);
+    pub fn get_custom_action(&self, name: &str) -> Option<&CustomAction>;
+    pub fn add_custom_action(&mut self, name: String, action: CustomAction);
 }
 ```
 
-## Flujo de Trabajo
+`TokenizerConfig` contiene la configuración compilada del tokenizador, incluyendo categorías de tokens, patrones compilados, reglas de contexto y acciones personalizadas. Proporciona métodos para acceder y modificar la configuración.
 
-1. Carga de la configuración TOML.
-2. Inicialización del tokenizador con la configuración cargada.
-3. Recepción del código ABAP como entrada.
-4. Procesamiento carácter por carácter:
-   - Identificación del tipo de token.
-   - Aplicación de reglas de coincidencia.
-   - Creación de tokens.
-5. Manejo de casos especiales y errores.
-6. Generación de la lista final de tokens.
+### Estructuras de Configuración Adicionales
+
+```rust
+pub struct Metadata {
+    pub language_version: String,
+    pub case_sensitive: bool,
+    pub allow_unicode_identifiers: bool,
+}
+
+pub struct CategoryConfig {
+    pub priority: u32,
+    pub color: String,
+}
+
+pub struct CompiledPatternConfig {
+    pub regex: Regex,
+    pub subcategory: Option<String>,
+}
+
+pub struct ContextRule {
+    pub start: String,
+    pub end: String,
+    pub escape: Option<String>,
+    pub multiline: Option<bool>,
+}
+
+pub struct CustomAction {
+    pub action: String,
+    pub args: Option<HashMap<String, String>>,
+}
+```
+
+Estas estructuras adicionales definen varios aspectos de la configuración del tokenizador, como metadatos del lenguaje, configuraciones de categorías, patrones compilados, reglas de contexto y acciones personalizadas.
+
+### Manejo de Errores
+
+```rust
+pub enum ConfigError {
+    IoError(String),
+    ParseError(String),
+    InvalidRegex(String),
+    MissingField(String),
+    ConfigurationError(String),
+}
+
+pub enum TokenizerError {
+    ConfigError(ConfigError),
+    UnexpectedCharacter(char),
+    InvalidToken(String),
+    TokenizationError(String),
+}
+```
+
+`ConfigError` y `TokenizerError` definen los tipos de errores que pueden ocurrir durante la configuración y el proceso de tokenización, respectivamente. Esto permite un manejo de errores robusto y específico en todo el sistema.
+
+Estos componentes trabajan juntos para proporcionar un tokenizador flexible y potente para el lenguaje ABAP, capaz de adaptarse a diferentes variantes y requisitos específicos a través de la configuración.
 
 ## Diagramas
 
 ### Diagrama de Clases
 
 ```mermaid
-
 classDiagram
     class FlexibleTokenizer {
-        -input: Peekable<Chars>
+        -input: &str
         -config: TokenizerConfig
         -position: usize
         -line: usize
         -column: usize
         +new(input: &str, config: TokenizerConfig) FlexibleTokenizer
-        +next_token() Option<Token>
-        -match_pattern(category: &str, pattern: &CompiledPatternConfig) Option<Token>
+        +next_token() Result<Option<Token>, TokenizerError>
+        -find_next_token(input: &str) Result<Option<(Token, usize)>, TokenizerError>
         -skip_whitespace()
         -advance() char
     }
@@ -415,18 +453,28 @@ classDiagram
     }
 
     class TokenizerConfig {
+        +metadata: Metadata
         +token_categories: HashMap<String, CategoryConfig>
         +patterns: HashMap<String, Vec<CompiledPatternConfig>>
         +context_rules: HashMap<String, ContextRule>
         +custom_actions: HashMap<String, CustomAction>
-        +from_raw(raw_config: RawTokenizerConfig) Result<TokenizerConfig, Error>
+        +from_raw(raw_config: RawTokenizerConfig) Result<TokenizerConfig, ConfigError>
+        +merge(other: TokenizerConfig) Result<(), ConfigError>
+        +get_pattern(category: &str) Option<&Vec<CompiledPatternConfig>>
+        +add_pattern(category: String, pattern: CompiledPatternConfig)
+        +get_context_rule(name: &str) Option<&ContextRule>
+        +add_context_rule(name: String, rule: ContextRule)
+        +get_custom_action(name: &str) Option<&CustomAction>
+        +add_custom_action(name: String, action: CustomAction)
     }
 
     class RawTokenizerConfig {
+        +metadata: Metadata
         +token_categories: HashMap<String, CategoryConfig>
         +patterns: HashMap<String, Vec<RawPatternConfig>>
         +context_rules: HashMap<String, ContextRule>
         +custom_actions: HashMap<String, CustomAction>
+        +imports: Option<Vec<String>>
     }
 
     class CompiledPatternConfig {
@@ -437,6 +485,12 @@ classDiagram
     class RawPatternConfig {
         +regex: String
         +subcategory: Option<String>
+    }
+
+    class Metadata {
+        +language_version: String
+        +case_sensitive: bool
+        +allow_unicode_identifiers: bool
     }
 
     class CategoryConfig {
@@ -456,17 +510,38 @@ classDiagram
         +args: Option<HashMap<String, String>>
     }
 
+    class ConfigError {
+        <<enumeration>>
+        IoError
+        ParseError
+        InvalidRegex
+        MissingField
+        ConfigurationError
+    }
+
+    class TokenizerError {
+        <<enumeration>>
+        ConfigError
+        UnexpectedCharacter
+        InvalidToken
+        TokenizationError
+    }
+
     FlexibleTokenizer --> "1" TokenizerConfig : uses
     FlexibleTokenizer --> "*" Token : produces
     Token --> "1" TokenType : has
-    TokenizerConfig --> "*" CompiledPatternConfig : contains
+    TokenizerConfig --> "1" Metadata : has
     TokenizerConfig --> "*" CategoryConfig : contains
+    TokenizerConfig --> "*" CompiledPatternConfig : contains
     TokenizerConfig --> "*" ContextRule : contains
     TokenizerConfig --> "*" CustomAction : contains
-    RawTokenizerConfig --> "*" RawPatternConfig : contains
+    RawTokenizerConfig --> "1" Metadata : has
     RawTokenizerConfig --> "*" CategoryConfig : contains
+    RawTokenizerConfig --> "*" RawPatternConfig : contains
     RawTokenizerConfig --> "*" ContextRule : contains
     RawTokenizerConfig --> "*" CustomAction : contains
+    TokenizerConfig ..> ConfigError : may throw
+    FlexibleTokenizer ..> TokenizerError : may throw
 
 ```
 
@@ -505,10 +580,10 @@ Este diagrama de clases proporciona una visión general de la estructura de nues
 graph TD
     A[Entrada: Código ABAP] --> B[FlexibleTokenizer]
     C[Archivo de Configuración TOML] --> D[TOMLLoader]
-    D --> E[TokenizerConfig]
-    E --> F[Compilación de Expresiones Regulares]
+    D --> E[RawTokenizerConfig]
+    E --> F[TokenizerConfig]
     F --> B
-    B --> G[Módulo de Tokenización]
+    B --> G[Proceso de Tokenización]
     G --> H{Coincidencia de Patrones}
     H --> |Coincide| I[Creación de Token]
     H --> |No Coincide| J[Manejo de Token Desconocido]
@@ -517,19 +592,24 @@ graph TD
     K --> L[Post-procesamiento]
     L --> M[Salida: Tokens ABAP]
     
-    N[Módulo de Logging] -.-> B
-    N -.-> D
-    N -.-> G
-    
-    O[Módulo de Manejo de Errores] -.-> B
+    O[Manejo de Errores] -.-> B
     O -.-> D
     O -.-> G
+    
+    P[CategoryConfig] -.-> F
+    Q[CompiledPatternConfig] -.-> F
+    R[ContextRule] -.-> F
+    S[CustomAction] -.-> F
     
     subgraph "Sistema de Configuración"
     C
     D
     E
     F
+    P
+    Q
+    R
+    S
     end
     
     subgraph "Núcleo del Tokenizador"
@@ -547,49 +627,53 @@ graph TD
     
     style A fill:#25025e,stroke:#333,stroke-width:2px
     style M fill:#25025e,stroke:#333,stroke-width:2px
-    style N fill:#122078,stroke:#333,stroke-width:2px
     style O fill:#122078,stroke:#333,stroke-width:2px
 ```
 
-Explicación del diagrama de bloques:
+### Explicación del Diagrama de Bloques
+
+El diagrama de bloques representa la estructura y el flujo de datos del Tokenizador ABAP Flexible. A continuación, se detalla cada componente y su función en el sistema:
 
 1. **Entrada y Configuración**:
-   - El código ABAP es la entrada principal del sistema.
-   - El archivo de configuración TOML se carga a través del `TOMLLoader`.
-   - `TokenizerConfig` procesa la configuración raw y compila las expresiones regulares.
+   - El proceso comienza con dos entradas principales:
+     a) El código ABAP a tokenizar.
+     b) El archivo de configuración TOML que define las reglas de tokenización.
+   - El `TOMLLoader` procesa el archivo TOML y genera una `RawTokenizerConfig`.
+   - La `RawTokenizerConfig` se transforma en una `TokenizerConfig` completamente inicializada, que incluye patrones compilados y otras configuraciones procesadas.
 
-2. **Núcleo del Tokenizador**:
-   - `FlexibleTokenizer` es el componente central que coordina el proceso de tokenización.
-   - El módulo de tokenización maneja la lógica principal de procesamiento de tokens.
-   - La coincidencia de patrones utiliza las expresiones regulares compiladas.
+2. **Sistema de Configuración**:
+   - Incluye `CategoryConfig`, `CompiledPatternConfig`, `ContextRule`, y `CustomAction`.
+   - Estos componentes definen cómo se deben identificar y procesar los diferentes tipos de tokens.
 
-3. **Procesamiento de Tokens**:
-   - Los tokens coincidentes se crean y añaden a la lista.
-   - Los tokens desconocidos se manejan separadamente.
+3. **Núcleo del Tokenizador**:
+   - El `FlexibleTokenizer` es el componente central que utiliza la `TokenizerConfig` para procesar el código ABAP.
+   - El proceso de tokenización implica la coincidencia de patrones definidos en la configuración.
+   - Cuando se encuentra una coincidencia, se crea un token.
+   - Si no se encuentra coincidencia, se maneja como un token desconocido.
 
-4. **Post-procesamiento y Salida**:
-   - Se aplica cualquier post-procesamiento necesario a la lista de tokens.
-   - La salida final es una lista de tokens ABAP.
+4. **Procesamiento de Resultados**:
+   - Los tokens creados se agregan a una lista.
+   - Se realiza un post-procesamiento opcional, que puede incluir transformaciones adicionales de los tokens.
+   - Finalmente, se genera la salida: una lista de tokens ABAP.
 
-5. **Módulos Auxiliares**:
-   - El módulo de logging proporciona capacidades de registro en todo el sistema.
-   - El módulo de manejo de errores gestiona excepciones y errores en varios componentes.
+5. **Manejo de Errores**:
+   - El manejo de errores está integrado en todo el sistema, utilizando los tipos de error definidos en `error.rs`.
+   - Interactúa con varios componentes, incluyendo el tokenizador, el cargador de configuración y el proceso de tokenización.
+   - Permite una gestión robusta de situaciones excepcionales durante todo el proceso.
 
-Mejoras reflejadas en el diagrama:
+Este diseño modular permite una gran flexibilidad y extensibilidad:
+- La configuración basada en TOML facilita la adaptación del tokenizador a diferentes variantes de ABAP sin modificar el código fuente.
+- La separación clara entre la configuración y la lógica de tokenización permite actualizaciones independientes de cada componente.
+- El manejo de errores integrado asegura una operación robusta y facilita la depuración.
 
-1. **Compilación de Expresiones Regulares**: Ahora se muestra como un paso separado después de cargar la configuración, reflejando la optimización de rendimiento.
+El flujo general del sistema es:
+1. Cargar y procesar la configuración.
+2. Inicializar el tokenizador con la configuración procesada.
+3. Procesar el código ABAP entrada por entrada, generando tokens.
+4. Manejar casos especiales y errores según sea necesario.
+5. Producir la lista final de tokens como salida.
 
-2. **Sistema de Configuración**: Se destaca como un subsistema separado, mostrando su importancia en la flexibilidad del tokenizador.
-
-3. **Módulo de Tokenización**: Se muestra como un componente central dentro del núcleo del tokenizador, enfatizando su rol en el procesamiento de tokens.
-
-4. **Manejo de Token Desconocido**: Se incluye explícitamente, reflejando la capacidad del sistema para manejar casos no previstos en la configuración.
-
-5. **Post-procesamiento**: Se añade como un paso separado antes de la salida final, permitiendo transformaciones adicionales si es necesario.
-
-6. **Módulos de Logging y Manejo de Errores**: Se muestran interactuando con varios componentes del sistema, reflejando un enfoque más robusto para el registro y la gestión de errores.
-
-Este diagrama de bloques actualizado proporciona una visión clara y concisa de la estructura y el flujo de nuestro tokenizador ABAP flexible, destacando las mejoras y optimizaciones que hemos implementado.
+Esta arquitectura proporciona una base sólida para un tokenizador flexible y potente, capaz de adaptarse a las complejidades y variaciones del lenguaje ABAP.
 
 ### Diagrama de Secuencia
 
@@ -597,26 +681,28 @@ Este diagrama de bloques actualizado proporciona una visión clara y concisa de 
 sequenceDiagram
     participant Main as main.rs
     participant Lib as lib.rs
-    participant FT as FlexibleTokenizer
     participant TL as TOMLLoader
     participant TC as TokenizerConfig
+    participant FT as FlexibleTokenizer
     participant T as Token
     participant TT as TokenType
+    participant E as error.rs
 
     Main->>Lib: Iniciar tokenización
-    Lib->>TL: load_toml_config("config.toml")
-    TL->>TC: parse_config()
+    Lib->>TL: load_toml_config("config/default_config.toml")
+    TL->>E: Posible ConfigError
+    TL->>TC: parse_toml()
     TC-->>TL: RawTokenizerConfig
     TL->>TC: TokenizerConfig::from_raw(raw_config)
-    TC-->>TL: TokenizerConfig
-    TL-->>Lib: TokenizerConfig
+    TC-->>TL: Result<TokenizerConfig, ConfigError>
+    TL-->>Lib: Result<TokenizerConfig, ConfigError>
 
     Lib->>FT: new(input, config)
     
     loop Para cada token
         FT->>FT: next_token()
         FT->>FT: skip_whitespace()
-        FT->>FT: match_pattern()
+        FT->>FT: find_next_token()
         
         alt Patrón encontrado
             FT->>TT: new(category, subcategory)
@@ -630,116 +716,129 @@ sequenceDiagram
             T-->>FT: Token
         end
         
-        FT-->>Lib: Some(Token)
+        FT-->>Lib: Result<Option<Token>, TokenizerError>
     end
     
-    FT-->>Lib: None
+    FT-->>Lib: Ok(None)
     Lib-->>Main: Vec<Token>
 ```
 
-
-Explicación del diagrama de secuencia:
+Este diagrama de secuencia actualizado refleja el flujo de ejecución actual del tokenizador ABAP flexible. Aquí está una explicación detallada del diagrama:
 
 1. El proceso comienza en `main.rs`, que inicia la tokenización a través de `lib.rs`.
 
-2. `lib.rs` primero carga la configuración TOML utilizando `TOMLLoader`.
+2. `lib.rs` carga la configuración TOML utilizando `TOMLLoader`:
+   - `load_toml_config` lee y parsea el archivo de configuración.
+   - Se maneja la posibilidad de un `ConfigError` durante este proceso.
 
-3. `TOMLLoader` parsea el archivo TOML y crea un `RawTokenizerConfig`, que luego se convierte en un `TokenizerConfig` completamente inicializado.
+3. El `TOMLLoader` convierte el contenido TOML en una `RawTokenizerConfig`.
 
-4. Con la configuración cargada, `lib.rs` crea una nueva instancia de `FlexibleTokenizer`.
+4. La `RawTokenizerConfig` se convierte en una `TokenizerConfig` completamente inicializada usando `TokenizerConfig::from_raw`.
 
-5. Comienza un bucle de tokenización, donde `FlexibleTokenizer` procesa el input carácter por carácter:
-   - Primero, se saltan los espacios en blanco.
-   - Luego, se intenta hacer coincidir patrones definidos en la configuración.
-   - Si se encuentra un patrón, se crea un nuevo `TokenType` y `Token`.
-   - Si no se encuentra ningún patrón, se crea un token "Unknown".
+5. Con la configuración cargada, `lib.rs` crea una nueva instancia de `FlexibleTokenizer`.
 
-6. Cada token generado se devuelve a `lib.rs`.
+6. Comienza un bucle de tokenización, donde `FlexibleTokenizer` procesa el input:
+   - `next_token()` es llamado repetidamente para obtener cada token.
+   - Primero, se saltan los espacios en blanco con `skip_whitespace()`.
+   - `find_next_token()` intenta hacer coincidir el input con los patrones definidos.
 
-7. El proceso continúa hasta que no hay más input para tokenizar.
+7. Si se encuentra un patrón:
+   - Se crea un nuevo `TokenType` con la categoría y subcategoría correspondientes.
+   - Se crea un nuevo `Token` con el `TokenType`, valor y posición.
 
-8. Finalmente, `lib.rs` devuelve un vector de todos los tokens a `main.rs`.
+8. Si no se encuentra ningún patrón:
+   - Se crea un `TokenType` "Unknown".
+   - Se crea un `Token` "Unknown" con el carácter no reconocido.
 
-Este diagrama muestra claramente el flujo de ejecución y las interacciones entre los diferentes componentes de nuestro tokenizador ABAP flexible. Destaca la naturaleza iterativa del proceso de tokenización y cómo se utilizan las diferentes estructuras (TokenizerConfig, TokenType, Token) en el proceso.
+9. Cada `Token` generado se devuelve como `Result<Option<Token>, TokenizerError>` a `lib.rs`.
 
-¿Hay algún aspecto específico del flujo de ejecución o de las interacciones entre componentes que le gustaría que explicara con más detalle?
+10. El proceso continúa hasta que no hay más input para tokenizar (`Ok(None)` es devuelto).
+
+11. Finalmente, `lib.rs` devuelve un vector de todos los tokens a `main.rs`.
+
+Este diagrama muestra claramente:
+- El manejo de errores integrado en varios puntos del proceso.
+- La conversión de la configuración raw a una forma utilizable.
+- El proceso iterativo de tokenización.
+- La creación de tokens tanto para patrones reconocidos como para input desconocido.
 
 
 ### Diagrama de Actividades
 
-```mermaid
+Aqui está el diagrama de actividades. Este diagrama refleja con precisión el flujo de trabajo actual del tokenizador ABAP flexible.
 
+
+
+```mermaid
 graph TD
     A[Inicio] --> B[Cargar configuración TOML]
     B --> C{Configuración válida?}
-    C -->|No| D[Registrar error de configuración]
+    C -->|No| D[Registrar ConfigError]
     D --> E[Terminar con error]
-    C -->|Sí| F[Inicializar tokenizador]
-    F --> G[Recibir input de código ABAP]
-    G --> H[Inicializar lista de tokens vacía]
-    H --> I{Hay más caracteres?}
-    I -->|Sí| J[Leer siguiente carácter]
-    J --> K{Es espacio en blanco?}
-    K -->|Sí| L[Saltar espacio en blanco]
-    L --> I
-    K -->|No| M{Coincide con algún patrón?}
-    M -->|Sí| N[Identificar categoría y subcategoría]
-    N --> O[Crear TokenType]
-    O --> P[Crear Token]
-    P --> Q[Añadir Token a la lista]
-    Q --> R[Avanzar posición en el input]
-    R --> I
-    M -->|No| S[Crear Token 'Unknown']
-    S --> T[Añadir Token 'Unknown' a la lista]
-    T --> U[Avanzar posición en el input]
-    U --> I
-    I -->|No| V[Aplicar post-procesamiento si es necesario]
-    V --> W[Retornar lista de tokens]
+    C -->|Sí| F[Inicializar TokenizerConfig]
+    F --> G[Inicializar FlexibleTokenizer]
+    G --> H[Recibir input de código ABAP]
+    H --> I[Inicializar lista de tokens vacía]
+    I --> J{Hay más caracteres?}
+    J -->|Sí| K[Llamar next_token]
+    K --> L[Saltar espacios en blanco]
+    L --> M[Obtener remaining_input]
+    M --> N{Coincide con algún patrón?}
+    N -->|Sí| O[Identificar categoría y subcategoría]
+    O --> P[Crear TokenType]
+    P --> Q[Crear Token]
+    Q --> R[Añadir Token a la lista]
+    R --> S[Avanzar posición en el input]
+    S --> J
+    N -->|No| T[Crear Token 'Unknown']
+    T --> U[Añadir Token 'Unknown' a la lista]
+    U --> V[Avanzar posición en el input]
+    V --> J
+    J -->|No| W[Retornar lista de tokens]
     W --> X[Fin]
 
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style E fill:#f99,stroke:#333,stroke-width:2px
     style X fill:#f9f,stroke:#333,stroke-width:2px
     style D fill:#ff9,stroke:#333,stroke-width:2px
-    style S fill:#ff9,stroke:#333,stroke-width:2px
+    style T fill:#ff9,stroke:#333,stroke-width:2px
 
 ```
 
-Explicación del diagrama de actividades:
+Este diagrama de actividades refleja el flujo de trabajo implementado en el código fuente del tokenizador ABAP flexible. Aquí está una explicación detallada del diagrama:
 
 1. El proceso comienza con la carga de la configuración TOML.
 
-2. Se verifica si la configuración es válida. Si no lo es, se registra un error y el proceso termina.
+2. Se verifica si la configuración es válida. Si no lo es, se registra un `ConfigError` y el proceso termina con un error.
 
-3. Si la configuración es válida, se inicializa el tokenizador.
+3. Si la configuración es válida, se inicializa `TokenizerConfig` y luego `FlexibleTokenizer`.
 
 4. Se recibe el input de código ABAP y se inicializa una lista vacía para almacenar los tokens.
 
 5. El proceso principal es un bucle que continúa mientras haya más caracteres en el input:
    
-   a. Se lee el siguiente carácter.
+   a. Se llama al método `next_token()`.
    
-   b. Si es un espacio en blanco, se salta y se continúa con el siguiente carácter.
+   b. Se saltan los espacios en blanco.
    
-   c. Si no es un espacio en blanco, se intenta hacer coincidir con los patrones definidos en la configuración.
+   c. Se obtiene el `remaining_input` a partir de la posición actual.
    
-   d. Si coincide con un patrón:
+   d. Se intenta hacer coincidir el input con los patrones definidos en la configuración.
+   
+   e. Si coincide con un patrón:
       - Se identifica la categoría y subcategoría del token.
-      - Se crea un TokenType y luego un Token.
-      - Se añade el Token a la lista.
+      - Se crea un `TokenType` y luego un `Token`.
+      - Se añade el `Token` a la lista.
    
-   e. Si no coincide con ningún patrón:
+   f. Si no coincide con ningún patrón:
       - Se crea un Token 'Unknown'.
       - Se añade el Token 'Unknown' a la lista.
    
-   f. Se avanza la posición en el input.
+   g. Se avanza la posición en el input.
 
-6. Cuando no hay más caracteres, se aplica cualquier post-procesamiento necesario (si está definido en la configuración).
+6. Cuando no hay más caracteres, se retorna la lista completa de tokens.
 
-7. Finalmente, se retorna la lista completa de tokens.
-
-Este diagrama de actividades proporciona una visión clara del flujo de trabajo del tokenizador, mostrando las decisiones que se toman en cada paso del proceso. Destaca la naturaleza iterativa del proceso de tokenización y cómo se manejan diferentes casos (espacios en blanco, coincidencias de patrones, caracteres desconocidos).
-
+Este diagrama de actividades proporciona una visión clara del flujo de trabajo del tokenizador, mostrando las decisiones que se toman en cada paso del proceso. Destaca la naturaleza iterativa del proceso de tokenización y cómo se manejan diferentes casos (coincidencias de patrones, caracteres desconocidos).
 
 ## Flujo de Trabajo
 
@@ -751,21 +850,3 @@ Este diagrama de actividades proporciona una visión clara del flujo de trabajo 
    - Crear tokens basados en las coincidencias encontradas.
    - Manejar casos especiales y reglas de contexto.
 4. Generación de la lista final de tokens.
-
-## Implementación
-
-La implementación de este rediseño implica los siguientes pasos principales:
-
-1. Crear las estructuras de datos necesarias (TokenType, Token, TokenizerConfig, etc.).
-2. Implementar la carga y parsing del archivo de configuración TOML.
-3. Desarrollar la lógica de coincidencia para diferentes tipos de tokens.
-4. Implementar el flujo principal de tokenización en FlexibleTokenizer.
-5. Crear un sistema robusto de manejo de errores y logging.
-6. Desarrollar pruebas unitarias y de integración para verificar el funcionamiento correcto.
-
-## Consideraciones Finales
-
-- Este rediseño proporciona una base flexible para el tokenizador ABAP, permitiendo fácil adaptación a diferentes variantes del lenguaje.
-- La configuración basada en TOML permite cambios rápidos sin necesidad de modificar el código.
-- Es importante mantener un equilibrio entre flexibilidad y rendimiento, optimizando las operaciones críticas.
-- Se recomienda una documentación detallada del formato de configuración TOML para facilitar su uso y mantenimiento.
