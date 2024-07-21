@@ -1,5 +1,5 @@
 // abap-tokenizer/src/config/mod.rs
-mod tokenizer_config;
+pub(crate) mod tokenizer_config;
 mod toml_loader;
 
 pub use tokenizer_config::{TokenizerConfig, CompiledPatternConfig};

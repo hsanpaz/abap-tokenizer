@@ -16,13 +16,12 @@ Comment = { priority = 6, color = "green" }
 [patterns]
 
 Comment = [
-    { regex = "\\*.*$", subcategory = "LineComment" },
-    { regex = "\".*$", subcategory = "LineComment" }
+    { regex = "\\\".*$", subcategory = "LineComment"  }
 ]
 
 Keyword = [
     { regex = "\\b(IF|ELSE|ENDIF|CASE|ENDCASE|DO|ENDDO|WHILE|ENDWHILE|LOOP|ENDLOOP)\\b", subcategory = "ControlFlow" },
-    { regex = "\\b(DATA|TYPES|CONSTANTS|FIELD-SYMBOLS|REPORT|VALUE)\\b", subcategory = "Declaration" },
+    { regex = "\\b(DATA|TYPES|CONSTANTS|FIELD-SYMBOLS|REPORT|VALUE|TYPE|WRITE)\\b", subcategory = "Declaration" },
     { regex = "\\b(SELECT|FROM|WHERE|ORDER BY|GROUP BY|HAVING)\\b", subcategory = "Database" },
     { regex = "\\b(FORM|ENDFORM|PERFORM|METHOD|ENDMETHOD|FUNCTION|ENDFUNCTION)\\b", subcategory = "Subroutine" },
     { regex = "\\b(CLASS|ENDCLASS|INTERFACE|ENDINTERFACE)\\b", subcategory = "OOP" }
@@ -51,9 +50,28 @@ Punctuation = [
 StringLiteral = { start = "'", end = "'", escape = "''", multiline = true }
 TemplateString = { start = "|", end = "|", escape = "||", multiline = true }
 
-[special_rules]
-FieldSymbol = { start = "<", end = ">", allow_nested = false }
-Pragma = { start = "#", regex = "#[A-Z]+", process_as = "Keyword" }
+[[special_rules]]
+token_type = "FieldSymbol"
+start = "<"
+end = ">"
+min_length = 3
+
+[[special_rules]]
+token_type = "Pragma"
+start = "#"
+regex = "#[A-Z]+"
+
+[[special_rules]]
+token_type = "Comment"
+start = "*"
+start_column = 1
+end = "\n"
+
+[[special_rules]]
+token_type = "Comment"
+start = '"'
+end = "\n"
+
 
 [custom_actions]
 Pragma = { action = "ProcessPragma" }

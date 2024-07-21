@@ -9,13 +9,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_toml_config(config_path.to_str().unwrap())?;
 
     // Código ABAP de ejemplo
-    let input = r#"
-    REPORT z_test_program.
-
+    let input = 
+r#" REPORT z_test_program. "inicio
+*   Esto es un comentario de linea.
     DATA: lv_number TYPE i VALUE 10,
           lv_text   TYPE string VALUE 'Hello, ABAP!'.
-*   Esto es un comentario de linea.
-    WRITE: 'Number:', lv_number.
+
+    WRITE: 'Number:', lv_number. "Comentario abap entre lineas
     WRITE: / 'Text:', lv_text.
 
     IF lv_number > 5.
@@ -36,24 +36,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
-
-/*fn main() {
-
-    env_logger::init();
-
-    let string1 = String::from("abcd");
-    let string2 = "wxyz";
-
-    let result = longest(string1.as_str(), string2);
-    println!("The longest string is {result}");
-}
-
-
-fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
-    if x.len() > y.len() {
-        x
-    } else {
-        y
-    }
-}*/

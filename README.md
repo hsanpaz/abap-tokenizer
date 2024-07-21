@@ -234,7 +234,6 @@ Punctuation = [
 ]
 
 Comment = [
-    { regex = "\\*.*$", subcategory = "LineComment" },
     { regex = "\".*$", subcategory = "LineComment" }
 ]
 
@@ -243,8 +242,9 @@ StringLiteral = { start = "'", end = "'", escape = "''", multiline = true }
 TemplateString = { start = "|", end = "|", escape = "||", multiline = true }
 
 [special_rules]
-FieldSymbol = { start = "<", end = ">", allow_nested = false }
+FieldSymbol = { start = "<", end = ">", min_length = "3" }
 Pragma = { start = "#", regex = "#[A-Z]+", process_as = "Keyword" }
+Comment = { start = "*", start_column = "1" end = "\n" }
 
 [custom_actions]
 Pragma = { action = "ProcessPragma" }
