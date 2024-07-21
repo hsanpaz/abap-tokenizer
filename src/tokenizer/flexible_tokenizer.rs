@@ -1,4 +1,10 @@
 // abap-tokenizer/src/tokenizer/flexible_tokenizer.rs
+//! Flexible tokenizer implementation for ABAP code.
+//!
+//! This module contains the main tokenizer logic, capable of processing ABAP code
+//! based on a provided configuration. It handles various token types, special rules,
+//! and provides detailed error reporting and debugging information.
+
 use std::collections::HashMap;
 use super::token::Token;
 use super::token_type::TokenType;
@@ -8,16 +14,35 @@ use crate::error::TokenizerError;
 use log::debug;
 use regex::Regex;
 
+
+
+/// Type alias for a function that validates special rules.
 type RuleValidator = Box<dyn Fn(&str, &SpecialRule, usize) -> Option<usize>>;
 pub struct FlexibleTokenizer<'a> {
+    /// The input ABAP code to be tokenized.
     input: &'a str,
+    /// The configuration for the tokenizer.
     config: TokenizerConfig,
+    /// The current position in the input string.
     position: usize,
+    /// The current line number being processed.
     line: usize,
+    /// The current column number being processed.
     column: usize,
 }
 
+/// The main tokenizer struct for processing ABAP code.
 impl<'a> FlexibleTokenizer<'a> {
+    /// Creates a new FlexibleTokenizer instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - A string slice containing the ABAP code to be tokenized
+    /// * `config` - The TokenizerConfig to use for tokenization
+    ///
+    /// # Returns
+    ///
+    /// A new FlexibleTokenizer instance
     pub fn new(input: &'a str, config: TokenizerConfig) -> Self {
         FlexibleTokenizer {
             input,
@@ -28,6 +53,19 @@ impl<'a> FlexibleTokenizer<'a> {
         }
     }
 
+    /// Processes the next token in the input.
+    ///
+    /// This method is the core of the tokenization process. It performs the following steps:
+    /// 1. Skips any whitespace.
+    /// 2. Checks for the end of input.
+    /// 3. Attempts to match special rules.
+    /// 4. Attempts to match regular token patterns.
+    /// 5. Handles unknown tokens if no match is found.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<Token>, TokenizerError>` - The next token if available, None if end of input,
+    ///   or an error if tokenization fails.
     pub fn next_token(&mut self) -> Result<Option<Token>, TokenizerError> {
         self.skip_whitespace();
 
@@ -37,7 +75,7 @@ impl<'a> FlexibleTokenizer<'a> {
 
         let remaining_input = &self.input[self.position..];
 
-        // Specialrules Lexer
+        // Check special rules first
         if let Some((token, length)) = self.check_special_rules(remaining_input)? {
             for _ in 0..length {
                 self.advance();
@@ -45,6 +83,7 @@ impl<'a> FlexibleTokenizer<'a> {
             return Ok(Some(token));
         }
 
+        // Then check regular patterns
         if let Some((token, length)) = self.find_next_token(remaining_input)? {
             for _ in 0..length {
                 self.advance();
@@ -62,7 +101,20 @@ impl<'a> FlexibleTokenizer<'a> {
             self.column,
         )))
     }
-
+    
+    /// Attempts to find the next token based on the configured patterns.
+    ///
+    /// This method iterates through all token categories in order of priority,
+    /// attempting to match the input against each pattern in the category.
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The remaining input string to be tokenized
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<(Token, usize)>, TokenizerError>` - A tuple containing the matched token
+    ///   and its length if found, or None if no match is found.
     fn find_next_token(&self, input: &str) -> Result<Option<(Token, usize)>, TokenizerError> {
         let mut categories: Vec<_> = self.config.token_categories.iter().collect();
         categories.sort_by_key(|&(_, config)| config.priority);
@@ -89,6 +141,19 @@ impl<'a> FlexibleTokenizer<'a> {
         Ok(None)
     }
 
+    /// Checks if any special rules apply to the current input.
+    ///
+    /// This method iterates through all special rules defined in the configuration,
+    /// applying each rule's validators to the input.
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The remaining input string to be tokenized
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<(Token, usize)>, TokenizerError>` - A tuple containing the matched token
+    ///   and its length if a special rule applies, or None if no special rule matches.
     fn check_special_rules(&self, input: &str) -> Result<Option<(Token, usize)>, TokenizerError> {
         let validators: HashMap<&str, RuleValidator> = vec![
             ("start", Box::new(Self::validate_start) as RuleValidator),
@@ -105,7 +170,6 @@ impl<'a> FlexibleTokenizer<'a> {
         ]
         .into_iter()
         .collect();
-
         for rule in &self.config.special_rules {
             let mut end_pos = input.len();
             let mut is_valid = true;
@@ -136,6 +200,7 @@ impl<'a> FlexibleTokenizer<'a> {
         Ok(None)
     }
 
+    /// Validates the start condition of a special rule.
     fn validate_start(input: &str, rule: &SpecialRule, _: usize) -> Option<usize> {
         if input.starts_with(&rule.start) {
             Some(input.len())
@@ -144,6 +209,7 @@ impl<'a> FlexibleTokenizer<'a> {
         }
     }
 
+    /// Validates the end condition of a special rule.
     fn validate_end(input: &str, rule: &SpecialRule, _: usize) -> Option<usize> {
         rule.end.as_ref().and_then(|end| {
             input[rule.start.len()..]
@@ -152,6 +218,7 @@ impl<'a> FlexibleTokenizer<'a> {
         })
     }
 
+    /// Validates the regex condition of a special rule.
     fn validate_regex(input: &str, rule: &SpecialRule, _: usize) -> Option<usize> {
         rule.regex.as_ref().and_then(|regex| {
             Regex::new(regex).ok().and_then(|re| {
@@ -166,6 +233,7 @@ impl<'a> FlexibleTokenizer<'a> {
         })
     }
 
+    /// Validates the minimum length condition of a special rule.
     fn validate_min_length(input: &str, rule: &SpecialRule, _: usize) -> Option<usize> {
         rule.min_length.map_or(Some(input.len()), |min_len| {
             if input.len() >= min_len {
@@ -176,6 +244,7 @@ impl<'a> FlexibleTokenizer<'a> {
         })
     }
 
+    /// Validates the start column condition of a special rule.
     fn validate_start_column(
         input: &str,
         rule: &SpecialRule,
@@ -190,6 +259,7 @@ impl<'a> FlexibleTokenizer<'a> {
         })
     }
 
+    /// Skips whitespace characters in the input.
     fn skip_whitespace(&mut self) {
         while self.position < self.input.len()
             && self.input[self.position..]
@@ -202,6 +272,13 @@ impl<'a> FlexibleTokenizer<'a> {
         }
     }
 
+    /// Advances the current position in the input by one character.
+    ///
+    /// This method also updates the line and column counters.
+    ///
+    /// # Returns
+    ///
+    /// The character at the current position before advancing.
     fn advance(&mut self) -> char {
         if let Some(ch) = self.input[self.position..].chars().next() {
             self.position += ch.len_utf8();

@@ -68,7 +68,6 @@ token_type = "Comment"
 start = '"'
 end = "\n"
 
-
 [custom_actions]
 Pragma = { action = "ProcessPragma" }
 TemplateString = { action = "ProcessTemplateString" } 
