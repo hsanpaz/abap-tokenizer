@@ -15,10 +15,6 @@ Comment = { priority = 6, color = "green" }
 
 [patterns]
 
-Comment = [
-    { regex = "\\\".*$", subcategory = "LineComment"  }
-]
-
 Keyword = [
     { regex = "\\b(IF|ELSE|ENDIF|CASE|ENDCASE|DO|ENDDO|WHILE|ENDWHILE|LOOP|ENDLOOP)\\b", subcategory = "ControlFlow" },
     { regex = "\\b(DATA|TYPES|CONSTANTS|FIELD-SYMBOLS|REPORT|VALUE|TYPE|WRITE)\\b", subcategory = "Declaration" },

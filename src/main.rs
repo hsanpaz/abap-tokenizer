@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Código ABAP de ejemplo
     let input = 
-r#" REPORT z_test_program. "inicio
+ r#"REPORT z_test_program. "inicio
 *   Esto es un comentario de linea.
     DATA: lv_number TYPE i VALUE 10,
           lv_text   TYPE string VALUE 'Hello, ABAP!'.
